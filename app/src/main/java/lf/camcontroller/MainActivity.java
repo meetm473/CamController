@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     // OpenCV variables
     private static final Scalar LOWER_LIMIT = new Scalar(29, 86, 6);
     private static final Scalar UPPER_LIMIT = new Scalar(70, 255, 255);
-    private static final Point TEXT_POS = new Point(300,600);
+    //    private static final Point TEXT_POS = new Point(300,600);
     private static final int SENSITIVITY = 100;
     private boolean isFrontCam = false;
     private Mat mRgba;
@@ -221,26 +221,29 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 int diffX = (int) (mRgba.cols() /2 - controllerCenter.x);
                 if (diffX > 0){
                     if (diffX > SENSITIVITY){
-                        Imgproc.putText(mRgba,"RIGHT",TEXT_POS,Core.FONT_HERSHEY_COMPLEX,1,new Scalar(0,0,0),1);
-                        sendCommand(2);
+                        if (isFrontCam) {
+                            sendCommand(2);
+                        } else {
+                            sendCommand(1);
+                        }
                     }
                     else{
-                        Imgproc.putText(mRgba,"CENTER",TEXT_POS,Core.FONT_HERSHEY_COMPLEX,1,new Scalar(0,0,0),1);
                         sendCommand(0);
                     }
                 }
                 else if(diffX < 0){
                     if(-1*diffX > SENSITIVITY){
-                        Imgproc.putText(mRgba,"LEFT",TEXT_POS,Core.FONT_HERSHEY_COMPLEX,1,new Scalar(0,0,0),1);
-                        sendCommand(1);
+                        if (isFrontCam) {
+                            sendCommand(1);
+                        } else {
+                            sendCommand(2);
+                        }
                     }
                     else{
-                        Imgproc.putText(mRgba,"CENTER",TEXT_POS,Core.FONT_HERSHEY_COMPLEX,1,new Scalar(0,0,0),1);
                         sendCommand(0);
                     }
                 }
                 else{
-                    Imgproc.putText(mRgba,"CENTER",TEXT_POS,Core.FONT_HERSHEY_COMPLEX,1,new Scalar(0,0,0),1);
                     sendCommand(0);
                 }
             }
@@ -412,6 +415,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         @Override
         public void run() {
             usbSerialDevice.write(msg);
+            if (msg[0] == '1') Log("Left");
+            else if (msg[0] == '2') Log("Right");
+            else if (msg[0] == '0') Log("Center");
         }
     }
 
