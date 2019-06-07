@@ -38,9 +38,9 @@
         android:elevation="10dp"
         android:scrollbars="vertical"
         android:text=""
-        android:textAlignment="viewStart"
-        android:textSize="14sp"
+        android:gravity="bottom"
         android:textStyle="bold"
+        android:textSize="14sp"
         android:visibility="visible" />
 
     <ToggleButton

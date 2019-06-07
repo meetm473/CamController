@@ -1,0 +1,21 @@
+Objectives to be fulfilled under version family 2:
+
+Base: The android phone would be attached to the robot. On receiving the start signal, the robot
+tries to align such that it faces straight at the object. This is achieved using both the cameras.
+Object would always be green in color.
+
+2.1:
+    1) The object would be placed in front of it.
+    2) Start signal is given by a button on screen.
+
+2.1.1:
+    The sub-objective (2) of previous version is over-ridden by following:
+    1) Start signal is given by Aux earphones. Double press indicates ON. Single press indicates
+    OFF.
+
+2.2:
+    1) The object could be placed any where in range of sight of the robot. Need not be in front
+    of it when the robot starts.
+
+2.3:
+    1) Addition of forward and backward functionalities.
