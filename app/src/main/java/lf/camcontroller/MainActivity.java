@@ -164,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private TextView logTv;
     private Button toggleUsb;
     private boolean isFrontCam = true;
+    private boolean isRoboOn = false;
     private char prevCmd = '\0';
 
     // Initializations
@@ -298,74 +299,76 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        Mat inter = new Mat(mRgba.size(),CvType.CV_8UC4);
-        List<MatOfPoint> contours = new ArrayList<>();
-        Mat interHi = new Mat();
-        float[] controllerRadius = new float[1];
-        Point controllerCenter = new Point();
-
         mRgba = inputFrame.rgba();
         Point frameCenter = new Point(640, 360);
-        Imgproc.GaussianBlur(mRgba,inter,new Size(9,9),0);
-        Imgproc.cvtColor(inter,inter,Imgproc.COLOR_BGR2HSV);
-        Core.inRange(inter,LOWER_LIMIT,UPPER_LIMIT,inter);
-        Imgproc.findContours(inter,contours,interHi,Imgproc.RETR_EXTERNAL,Imgproc.CHAIN_APPROX_SIMPLE);
-        if(contours.size()>0){
-            double maxVal = 0;
-            int maxValIdx = 0;
-            for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++){
-                double contourArea = Imgproc.contourArea(contours.get(contourIdx));
-                if (maxVal < contourArea){
-                    maxVal = contourArea;
-                    maxValIdx = contourIdx;
+        if (isRoboOn) {
+            Mat inter = new Mat(mRgba.size(), CvType.CV_8UC4);
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat interHi = new Mat();
+            float[] controllerRadius = new float[1];
+            Point controllerCenter = new Point();
+
+            Imgproc.GaussianBlur(mRgba, inter, new Size(9, 9), 0);
+            Imgproc.cvtColor(inter, inter, Imgproc.COLOR_BGR2HSV);
+            Core.inRange(inter, LOWER_LIMIT, UPPER_LIMIT, inter);
+            Imgproc.findContours(inter, contours, interHi, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            if (contours.size() > 0) {
+                double maxVal = 0;
+                int maxValIdx = 0;
+                for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
+                    double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+                    if (maxVal < contourArea) {
+                        maxVal = contourArea;
+                        maxValIdx = contourIdx;
+                    }
                 }
-            }
-            Imgproc.minEnclosingCircle(new MatOfPoint2f(contours.get(maxValIdx).toArray()), controllerCenter, controllerRadius);
-            if(controllerRadius[0]>10){
-                Imgproc.circle(mRgba,controllerCenter,7,new Scalar(255,0, 0),-1);
-                int diffX = (int) (frameCenter.x - controllerCenter.x);
-                if (diffX > 0){
-                    if (diffX > SENSITIVITY){
-                        if (isFrontCam) {
-                            sendCommand('a');
-                            Log("Turn left");
+                Imgproc.minEnclosingCircle(new MatOfPoint2f(contours.get(maxValIdx).toArray()), controllerCenter, controllerRadius);
+                if (controllerRadius[0] > 10) {
+                    Imgproc.circle(mRgba, controllerCenter, 7, new Scalar(255, 0, 0), -1);
+                    int diffX = (int) (frameCenter.x - controllerCenter.x);
+                    if (diffX > 0) {
+                        if (diffX > SENSITIVITY) {
+                            if (isFrontCam) {
+                                sendCommand('a');
+                                Log("Turn left");
+                            } else {
+                                sendCommand('d');
+                                Log("Turn right");
+                            }
                         } else {
-                            sendCommand('d');
-                            Log("Turn right");
+                            sendCommand('x');
+                            Log("In range");
+                        }
+                    } else if (diffX < 0) {
+                        if (-1 * diffX > SENSITIVITY) {
+                            if (isFrontCam) {
+                                sendCommand('d');
+                                Log("Turn right");
+                            } else {
+                                sendCommand('a');
+                                Log("Turn left");
+                            }
+                        } else {
+                            sendCommand('x');
+                            Log("In range");
                         }
                     } else {
                         sendCommand('x');
-                        Log("In range");
+                        Log("Perfect!");
                     }
-                } else if(diffX < 0){
-                    if(-1*diffX > SENSITIVITY){
-                        if (isFrontCam) {
-                            sendCommand('d');
-                            Log("Turn right");
-                        } else {
-                            sendCommand('a');
-                            Log("Turn left");
-                        }
-                    } else {
-                        sendCommand('x');
-                        Log("In range");
-                    }
-                } else {
+                }
+            } else {
+                if (prevCmd != '?') {
+                    Log("Controller not found.");
                     sendCommand('x');
-                    Log("Perfect!");
+                    prevCmd = '?';
                 }
             }
-        } else {
-            if (prevCmd != '?') {
-                Log("Controller not found.");
-                sendCommand('x');
-                prevCmd = '?';
-            }
+            inter.release();
+            interHi.release();
         }
         Imgproc.line(mRgba, new Point(frameCenter.x - SENSITIVITY, 0), new Point(frameCenter.x - SENSITIVITY, 720), new Scalar(0, 0, 0), 7);
         Imgproc.line(mRgba, new Point(frameCenter.x + SENSITIVITY, 0), new Point(frameCenter.x + SENSITIVITY, 720), new Scalar(0, 0, 0), 7);
-        inter.release();
-        interHi.release();
         return mRgba;
     }
 
@@ -388,11 +391,21 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             case R.id.echo:
                 sendCommand('M');
                 return true;
+            case R.id.robotBtn:
+                if (isRoboOn) {
+                    item.setTitle("Robo Start");
+                    isRoboOn = false;
+                    Log("Robot stopped.");
+                } else {
+                    item.setTitle("Robo Stop");
+                    isRoboOn = true;
+                    Log("Robot started.");
+                }
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
-
 
     private void disconnectUsb(){
         if(isUsbPortConnected){

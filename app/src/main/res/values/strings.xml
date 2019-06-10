@@ -4,4 +4,5 @@
     <string name="startBtnOff">Start</string>
     <string name="startBtnOn">Stop</string>
     <string name="camTF">Back Camera</string>
+    <string name="robot_toggleTF">Robo Start</string>
 </resources>

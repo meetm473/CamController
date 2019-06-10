@@ -12,7 +12,12 @@
     <item
         android:id="@+id/echo"
         android:title="@string/echoTF"
-        app:showAsAction="ifRoom"
+        app:showAsAction="never"
         />
+
+    <item
+        android:id="@+id/robotBtn"
+        android:title="@string/robot_toggleTF"
+        app:showAsAction="ifRoom" />
 
 </menu>
