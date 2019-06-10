@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">CamController</string>
+    <string name="app_name">Controller</string>
+    <string name="echoTF">Echo</string>
+    <string name="startBtnOff">Start</string>
+    <string name="startBtnOn">Stop</string>
+    <string name="camTF">Back Camera</string>
 </resources>

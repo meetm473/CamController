@@ -6,13 +6,13 @@
 
     <item
         android:id="@+id/toggleCamera"
-        android:title="Front Camera"
+        android:title="@string/camTF"
         app:showAsAction="never"/>
 
     <item
         android:id="@+id/echo"
-        android:title="Echo"
-        app:showAsAction="always"
+        android:title="@string/echoTF"
+        app:showAsAction="ifRoom"
         />
 
 </menu>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/controlLayout"
+        android:layout_below="@+id/toolBar">
+
+        <org.opencv.android.JavaCameraView
+            android:id="@+id/camView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/controlLayout"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true">
+
+        <ToggleButton
+            android:id="@+id/toggleUsb"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="20dp"
+            android:textOff="@string/startBtnOff"
+            android:textOn="@string/startBtnOn"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/logView"
+            android:layout_width="575dp"
+            android:layout_height="50dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
+            android:layout_toEndOf="@+id/toggleUsb"
+            android:background="#673AB7"
+            android:backgroundTint="#151313"
+            android:fontFamily="monospace"
+            android:gravity="bottom"
+            android:textColor="#2CFD16"
+            android:textStyle="bold"
+            android:typeface="monospace" />
+
+    </RelativeLayout>
+</RelativeLayout>
