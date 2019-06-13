@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     // OpenCV variables
     private static final Scalar LOWER_LIMIT = new Scalar(29, 86, 6);
     private static final Scalar UPPER_LIMIT = new Scalar(70, 255, 255);
-    private static final int SENSITIVITY = 85;
+    private static final int SENSITIVITY = 250;
     private Mat mRgba;
     private CameraBridgeViewBase opencvCamView;
     private BaseLoaderCallback baseLoaderCallback;
@@ -326,9 +326,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                     }
                 }
                 Imgproc.minEnclosingCircle(new MatOfPoint2f(contours.get(maxValIdx).toArray()), controllerCenter, controllerRadius);
-                if (controllerRadius[0] > 10) {
+                if (controllerRadius[0] > 8) {
                     Imgproc.circle(mRgba, controllerCenter, 7, new Scalar(255, 0, 0), -1);
                     int diffX = (int) (frameCenter.x - controllerCenter.x);
+                    Log("Radius: "+controllerRadius[0]);
                     if (diffX > 0) {
                         if (diffX > SENSITIVITY) {
                             if (isFrontCam) {
@@ -339,8 +340,14 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                                 Log("Turn right");
                             }
                         } else {
-                            sendCommand('x');
-                            Log("In range");
+                            if(controllerRadius[0]>420){
+                                sendCommand('x');
+                                Log("Reached!!!");
+                            }
+                            else{
+                                sendCommand('w');
+                                Log("In range. Moving ahead.");
+                            }
                         }
                     } else if (diffX < 0) {
                         if (-1 * diffX > SENSITIVITY) {
@@ -352,12 +359,24 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                                 Log("Turn left");
                             }
                         } else {
-                            sendCommand('x');
-                            Log("In range");
+                            if(controllerRadius[0]>420){
+                                sendCommand('x');
+                                Log("Reached!!!");
+                            }
+                            else{
+                                sendCommand('w');
+                                Log("In range. Moving ahead.");
+                            }
                         }
                     } else {
-                        sendCommand('x');
-                        Log("Perfect!");
+                        if(controllerRadius[0]>420){
+                            sendCommand('x');
+                            Log("Reached!!!");
+                        }
+                        else{
+                            sendCommand('w');
+                            Log("In range. Moving ahead.");
+                        }
                     }
                 }
             } else {
