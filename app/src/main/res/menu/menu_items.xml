@@ -20,4 +20,9 @@
         android:title="@string/robot_toggleTF"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/usbBtn"
+        android:title="@string/usbBtnTF"
+        app:showAsAction="ifRoom" />
+
 </menu>

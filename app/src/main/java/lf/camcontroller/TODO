@@ -9,9 +9,10 @@ Object would always be green in color.
     2) Start signal is given by a button on screen.
 
 2.1.1:
-    The sub-objective (2) of previous version is over-ridden by following:
-    1) Start signal is given by Aux earphones. Double press indicates ON. Single press indicates
-    OFF.
+    - Remove "When USB is connected, only then toggle button is enabled" functionality;
+      Replace it such that, when "Start" is pressed, only then attached USBs are searched.
+      Retain the ON DETACHED functionality as it is. Basically nothing happens USB is attached.
+    - Remove the Start USB button and place it in the menu. Only log will be present below.
 
 2.2:
     1) The object could be placed any where in range of sight of the robot. Need not be in front
@@ -19,3 +20,11 @@ Object would always be green in color.
 
 2.3:
     1) Addition of forward and backward functionalities.
+
+
+PS: If time permits, and resources are proper, implement start and stop robot with headset.
+    Else, the first priority is to complete the version 2 family.
+
+    Complete all the programming with Arduino and then do the same with ATMega 8A.
+
+NEXT: Line follower with IR sensors.

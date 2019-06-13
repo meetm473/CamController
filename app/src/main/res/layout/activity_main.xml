@@ -43,17 +43,5 @@
         android:textSize="14sp"
         android:visibility="visible" />
 
-    <ToggleButton
-        android:id="@+id/toggleUsb"
-        android:layout_width="72dp"
-        android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/toolBar"
-        android:layout_alignParentBottom="true"
-        android:layout_marginEnd="324dp"
-        android:layout_marginBottom="1dp"
-        android:textOff="Start"
-        android:textOn="Stop"
-        android:textSize="10sp" />
-
 
 </RelativeLayout>

@@ -17,9 +17,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,7 +39,9 @@ import org.opencv.imgproc.Imgproc;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
@@ -52,11 +52,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private UsbSerialDevice usbSerialDevice;
     private boolean usbBtnState = false;
     private boolean isUsbPortConnected = false;
-
-    // OpenCV variables
-    private static final Scalar LOWER_LIMIT = new Scalar(29, 86, 6);
-    private static final Scalar UPPER_LIMIT = new Scalar(70, 255, 255);
-    private static final int SENSITIVITY = 50;
     //Defining a Callback which triggers whenever data is read.
     private final UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
         @Override
@@ -72,42 +67,35 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             }).start();
         }
     };
-    private Mat mRgba;
-    private CameraBridgeViewBase opencvCamView;
-    private BaseLoaderCallback baseLoaderCallback;
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 Log("usbDevice attached");
-                synchronized (this) {
-                    usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    mainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            toggleUsb.setEnabled(true);
-                        }
-                    });
-                }
             } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                if (isUsbPortConnected) {
+                try{
+                    if (isUsbPortConnected) {
+                        mainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                usbSerialDevice.close();
+                                isUsbPortConnected = false;
+                            }
+                        });
+                    }
+                    Log("Device removed.");
                     mainHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            usbSerialDevice.close();
-                            isUsbPortConnected = false;
+                            usbBtnState = false;
+                            disconnectUsb();
+                            menu.findItem(R.id.usbBtn).setTitle("USB Start");
+                            Log("Stopped USB communication");
                         }
                     });
+                }catch(Exception ex){
+                    Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
                 }
-                Log("Device removed.");
-                mainHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        toggleUsb.performClick();
-                        toggleUsb.setEnabled(false);
-
-                    }
-                });
             } else if (ACTION_USB_PERMISSION.equals(action)) {
                 if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                     try {
@@ -117,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                                 usbSerialDevice = UsbSerialDevice.createUsbSerialDevice(usbDevice, usbDeviceConnection);
                                 if (usbSerialDevice != null) {
                                     if (usbSerialDevice.open()) {                                       //Set Serial Connection Parameters.
-                                        usbSerialDevice.setBaudRate(1200);
+                                        usbSerialDevice.setBaudRate(9600);
                                         usbSerialDevice.setDataBits(UsbSerialInterface.DATA_BITS_8);
                                         usbSerialDevice.setStopBits(UsbSerialInterface.STOP_BITS_1);
                                         usbSerialDevice.setParity(UsbSerialInterface.PARITY_NONE);
@@ -140,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                                 @Override
                                 public void run() {
                                     usbBtnState = false;
-                                    toggleUsb.setText("Start");
+                                    menu.findItem(R.id.usbBtn).setTitle("USB Start");
                                 }
                             });
                         }
@@ -158,16 +146,24 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
     };
 
+    // OpenCV variables
+    private static final Scalar LOWER_LIMIT = new Scalar(29, 86, 6);
+    private static final Scalar UPPER_LIMIT = new Scalar(70, 255, 255);
+    private static final int SENSITIVITY = 85;
+    private Mat mRgba;
+    private CameraBridgeViewBase opencvCamView;
+    private BaseLoaderCallback baseLoaderCallback;
+
     // GUI and other variables
     private static final String TAG = "MainActivity";
     private Handler mainHandler;
     private TextView logTv;
-    private Button toggleUsb;
+    private Menu menu;
     private boolean isFrontCam = true;
     private boolean isRoboOn = false;
     private char prevCmd = '\0';
 
-    // Initializations
+    // Initializations and UI
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,29 +172,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         setContentView(R.layout.activity_main);
         mainHandler = new Handler();
 
-        toggleUsb = findViewById(R.id.toggleUsb);
-        toggleUsb.setEnabled(false);
-        toggleUsb.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(usbBtnState){
-                    usbBtnState = false;
-                    disconnectUsb();
-                    Log("Stopped USB communication");
-                }
-                else{
-                    usbBtnState = true;
-                    try{
-                        PendingIntent permissionIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(ACTION_USB_PERMISSION), 0);
-                        usbManager.requestPermission(usbDevice, permissionIntent);
-                    }
-                    catch (Exception ex){
-                        Log(ex.toString());
-                    }
-                    Log("Started USB communication");
-                }
-            }
-        });
         Toolbar toolBar = findViewById(R.id.toolBar);
         logTv = findViewById(R.id.logView);
         logTv.setMovementMethod(new ScrollingMovementMethod());
@@ -229,6 +202,81 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_items, menu);
+        this.menu = menu;
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.toggleCamera:
+                if (isFrontCam) {
+                    swapCamera();
+                    item.setTitle("Front Camera");
+                    isFrontCam = false;
+                    Log("Back Camera");
+                } else {
+                    swapCamera();
+                    item.setTitle("Back Camera");
+                    isFrontCam = true;
+                    Log("Front Camera");
+                }
+                return true;
+            case R.id.echo:
+                sendCommand('M');
+                return true;
+            case R.id.robotBtn:
+                if (isRoboOn) {
+                    item.setTitle("Robo Start");
+                    isRoboOn = false;
+                    Log("Robot stopped.");
+                } else {
+                    item.setTitle("Robo Stop");
+                    isRoboOn = true;
+                    Log("Robot started.");
+                }
+                return true;
+            case R.id.usbBtn:
+                if(usbBtnState){
+                    usbBtnState = false;
+                    disconnectUsb();
+                    item.setTitle("USB Start");
+                    Log("Stopped USB communication");
+                }
+                else{
+                    usbBtnState = true;
+                    try{
+                        HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
+                        if (!usbDevices.isEmpty()) {
+                            for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
+                                usbDevice = entry.getValue();
+                                Log("Device:" + usbDevice.getProductName());
+                                PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+                                usbManager.requestPermission(usbDevice, pi);
+                                Log("Requested USB communication");
+                            }
+                        } else {
+                            Log("USB Devices list is empty.");
+                            usbBtnState = false;
+                        }
+                    } catch (Exception ex){
+                        Log(ex.toString());
+                        usbBtnState = false;
+                    }
+                    finally {
+                        if(usbBtnState) item.setTitle("USB Stop");
+                    }
+                }
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
     private void Log(String text) {
         final String ftext = text+"\n";
         mainHandler.post(new Runnable() {
@@ -239,7 +287,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         });
     }
 
-    // Camera and image processing >>>>>
+    // Camera and image processing
     @Override
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height,width, CvType.CV_8UC4);
@@ -250,52 +298,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mRgba.release();
         Log.wtf(TAG,"CameraView Stopped");
     }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_items, menu);
-        return true;
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (opencvCamView != null) {
-            opencvCamView.disableView();
-            Log.wtf(TAG, "Camera Paused");
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!OpenCVLoader.initDebug()) {
-            Log.wtf(TAG, "OpenCVLoader.initdebug() returned false");
-            Toast.makeText(getApplicationContext(), "Prob 00", Toast.LENGTH_SHORT).show();
-        } else {
-            baseLoaderCallback.onManagerConnected(BaseLoaderCallback.SUCCESS);
-            Log.wtf(TAG, "Camera Resumed");
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (opencvCamView != null) {
-            opencvCamView.disableView();
-            Log.w(TAG, "Camera Turned OFF");
-        }
-        disconnectUsb();
-    }
-
-    private void swapCamera() {
-        opencvCamView.disableView();
-        opencvCamView.setCameraIndex(isFrontCam ? 0 : 1);
-        opencvCamView.enableView();
-    }
-
-    // USB communication >>>>
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
@@ -373,39 +375,43 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.toggleCamera:
-                if (isFrontCam) {
-                    swapCamera();
-                    item.setTitle("Front Camera");
-                    isFrontCam = false;
-                    Log("Back Camera");
-                } else {
-                    swapCamera();
-                    item.setTitle("Back Camera");
-                    isFrontCam = true;
-                    Log("Front Camera");
-                }
-                return true;
-            case R.id.echo:
-                sendCommand('M');
-                return true;
-            case R.id.robotBtn:
-                if (isRoboOn) {
-                    item.setTitle("Robo Start");
-                    isRoboOn = false;
-                    Log("Robot stopped.");
-                } else {
-                    item.setTitle("Robo Stop");
-                    isRoboOn = true;
-                    Log("Robot started.");
-                }
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+    protected void onPause() {
+        super.onPause();
+        if (opencvCamView != null) {
+            opencvCamView.disableView();
+            Log.wtf(TAG, "Camera Paused");
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.wtf(TAG, "OpenCVLoader.initdebug() returned false");
+            Toast.makeText(getApplicationContext(), "Prob 00", Toast.LENGTH_SHORT).show();
+        } else {
+            baseLoaderCallback.onManagerConnected(BaseLoaderCallback.SUCCESS);
+            Log.wtf(TAG, "Camera Resumed");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (opencvCamView != null) {
+            opencvCamView.disableView();
+            Log.w(TAG, "Camera Turned OFF");
+        }
+        disconnectUsb();
+    }
+
+    private void swapCamera() {
+        opencvCamView.disableView();
+        opencvCamView.setCameraIndex(isFrontCam ? 0 : 1);
+        opencvCamView.enableView();
+    }
+
+    // USB communication
 
     private void disconnectUsb(){
         if(isUsbPortConnected){

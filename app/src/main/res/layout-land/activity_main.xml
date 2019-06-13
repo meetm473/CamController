@@ -32,25 +32,13 @@
         android:layout_height="50dp"
         android:layout_alignParentBottom="true">
 
-        <ToggleButton
-            android:id="@+id/toggleUsb"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="20dp"
-            android:textOff="@string/startBtnOff"
-            android:textOn="@string/startBtnOn"
-            android:textSize="12sp" />
-
         <TextView
             android:id="@+id/logView"
             android:layout_width="575dp"
             android:layout_height="50dp"
+            android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginStart="30dp"
-            android:layout_toEndOf="@+id/toggleUsb"
             android:background="#673AB7"
             android:backgroundTint="#151313"
             android:fontFamily="monospace"
