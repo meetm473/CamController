@@ -315,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             Core.inRange(inter, LOWER_LIMIT, UPPER_LIMIT, inter);
             Imgproc.findContours(inter, contours, interHi, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
             if (contours.size() > 0) {
+                if(prevCmd=='?') Log("Found controller. Alignment procedure initiated.");
                 double maxVal = 0;
                 int maxValIdx = 0;
                 for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
@@ -361,8 +362,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 }
             } else {
                 if (prevCmd != '?') {
-                    Log("Controller not found.");
-                    sendCommand('x');
+                    Log("Controller not found. Searching controller.");
+                    sendCommand('a');
                     prevCmd = '?';
                 }
             }
