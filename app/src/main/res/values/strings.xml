@@ -3,7 +3,7 @@
     <string name="echoTF">Echo \'M\'</string>
     <string name="startBtnOff">Start</string>
     <string name="startBtnOn">Stop</string>
-    <string name="camTF">Back Camera</string>
-    <string name="robot_toggleTF">Robo Start</string>
+    <string name="camTF">Front Camera</string>
+    <string name="robot_toggleTF">ImageProc Start</string>
     <string name="usbBtnTF">USB Start</string>
 </resources>

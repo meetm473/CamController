@@ -1,3 +1,4 @@
+// DO NOT EDIT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 package lf.camcontroller;
 
 import android.app.PendingIntent;
@@ -73,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 Log("usbDevice attached");
             } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                try{
+                try {
                     if (isUsbPortConnected) {
                         mainHandler.post(new Runnable() {
                             @Override
@@ -93,8 +94,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                             Log("Stopped USB communication");
                         }
                     });
-                }catch(Exception ex){
-                    Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
+                } catch (Exception ex) {
+                    Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_LONG).show();
                 }
             } else if (ACTION_USB_PERMISSION.equals(action)) {
                 if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
@@ -147,9 +148,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     };
 
     // OpenCV variables
-    private static final Scalar LOWER_LIMIT = new Scalar(29, 86, 6);
-    private static final Scalar UPPER_LIMIT = new Scalar(70, 255, 255);
-    private static final int SENSITIVITY = 250;
     private Mat mRgba;
     private CameraBridgeViewBase opencvCamView;
     private BaseLoaderCallback baseLoaderCallback;
@@ -159,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private Handler mainHandler;
     private TextView logTv;
     private Menu menu;
-    private boolean isFrontCam = true;
+    private boolean isFrontCam = false;
     private boolean isRoboOn = false;
     private char prevCmd = '\0';
 
@@ -177,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         logTv.setMovementMethod(new ScrollingMovementMethod());
         setSupportActionBar(toolBar);
         opencvCamView = findViewById(R.id.camView);
-        opencvCamView.setCameraIndex(1);
+        opencvCamView.setCameraIndex(0);
         opencvCamView.setVisibility(SurfaceView.VISIBLE);
         opencvCamView.setCvCameraViewListener(this);
 
@@ -199,7 +197,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(usbReceiver, filter);
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
     }
 
     @Override
@@ -231,25 +228,24 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 return true;
             case R.id.robotBtn:
                 if (isRoboOn) {
-                    item.setTitle("Robo Start");
+                    item.setTitle("ImageProc Start");
                     isRoboOn = false;
-                    Log("Robot stopped.");
+                    Log("ImageProc stopped.");
                 } else {
-                    item.setTitle("Robo Stop");
+                    item.setTitle("ImageProc Stop");
                     isRoboOn = true;
-                    Log("Robot started.");
+                    Log("ImageProc started.");
                 }
                 return true;
             case R.id.usbBtn:
-                if(usbBtnState){
+                if (usbBtnState) {
                     usbBtnState = false;
                     disconnectUsb();
                     item.setTitle("USB Start");
                     Log("Stopped USB communication");
-                }
-                else{
+                } else {
                     usbBtnState = true;
-                    try{
+                    try {
                         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
                         if (!usbDevices.isEmpty()) {
                             for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
@@ -263,12 +259,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                             Log("USB Devices list is empty.");
                             usbBtnState = false;
                         }
-                    } catch (Exception ex){
+                    } catch (Exception ex) {
                         Log(ex.toString());
                         usbBtnState = false;
-                    }
-                    finally {
-                        if(usbBtnState) item.setTitle("USB Stop");
+                    } finally {
+                        if (usbBtnState) item.setTitle("USB Stop");
                     }
                 }
                 return true;
@@ -278,7 +273,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     }
 
     private void Log(String text) {
-        final String ftext = text+"\n";
+        final String ftext = text + "\n";
         mainHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -290,108 +285,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     // Camera and image processing
     @Override
     public void onCameraViewStarted(int width, int height) {
-        mRgba = new Mat(height,width, CvType.CV_8UC4);
+        mRgba = new Mat(height, width, CvType.CV_8UC4);
     }
 
     @Override
     public void onCameraViewStopped() {
         mRgba.release();
-        Log.wtf(TAG,"CameraView Stopped");
-    }
-
-    @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        mRgba = inputFrame.rgba();
-        Point frameCenter = new Point(640, 360);
-        if (isRoboOn) {
-            Mat inter = new Mat(mRgba.size(), CvType.CV_8UC4);
-            List<MatOfPoint> contours = new ArrayList<>();
-            Mat interHi = new Mat();
-            float[] controllerRadius = new float[1];
-            Point controllerCenter = new Point();
-
-            Imgproc.GaussianBlur(mRgba, inter, new Size(9, 9), 0);
-            Imgproc.cvtColor(inter, inter, Imgproc.COLOR_BGR2HSV);
-            Core.inRange(inter, LOWER_LIMIT, UPPER_LIMIT, inter);
-            Imgproc.findContours(inter, contours, interHi, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-            if (contours.size() > 0) {
-                if(prevCmd=='?') Log("Found controller. Alignment procedure initiated.");
-                double maxVal = 0;
-                int maxValIdx = 0;
-                for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
-                    double contourArea = Imgproc.contourArea(contours.get(contourIdx));
-                    if (maxVal < contourArea) {
-                        maxVal = contourArea;
-                        maxValIdx = contourIdx;
-                    }
-                }
-                Imgproc.minEnclosingCircle(new MatOfPoint2f(contours.get(maxValIdx).toArray()), controllerCenter, controllerRadius);
-                if (controllerRadius[0] > 8) {
-                    Imgproc.circle(mRgba, controllerCenter, 7, new Scalar(255, 0, 0), -1);
-                    int diffX = (int) (frameCenter.x - controllerCenter.x);
-                    Log("Radius: "+controllerRadius[0]);
-                    if (diffX > 0) {
-                        if (diffX > SENSITIVITY) {
-                            if (isFrontCam) {
-                                sendCommand('a');
-                                Log("Turn left");
-                            } else {
-                                sendCommand('d');
-                                Log("Turn right");
-                            }
-                        } else {
-                            if(controllerRadius[0]>420){
-                                sendCommand('x');
-                                Log("Reached!!!");
-                            }
-                            else{
-                                sendCommand('w');
-                                Log("In range. Moving ahead.");
-                            }
-                        }
-                    } else if (diffX < 0) {
-                        if (-1 * diffX > SENSITIVITY) {
-                            if (isFrontCam) {
-                                sendCommand('d');
-                                Log("Turn right");
-                            } else {
-                                sendCommand('a');
-                                Log("Turn left");
-                            }
-                        } else {
-                            if(controllerRadius[0]>420){
-                                sendCommand('x');
-                                Log("Reached!!!");
-                            }
-                            else{
-                                sendCommand('w');
-                                Log("In range. Moving ahead.");
-                            }
-                        }
-                    } else {
-                        if(controllerRadius[0]>420){
-                            sendCommand('x');
-                            Log("Reached!!!");
-                        }
-                        else{
-                            sendCommand('w');
-                            Log("In range. Moving ahead.");
-                        }
-                    }
-                }
-            } else {
-                if (prevCmd != '?') {
-                    Log("Controller not found. Searching controller.");
-                    sendCommand('a');
-                    prevCmd = '?';
-                }
-            }
-            inter.release();
-            interHi.release();
-        }
-        Imgproc.line(mRgba, new Point(frameCenter.x - SENSITIVITY, 0), new Point(frameCenter.x - SENSITIVITY, 720), new Scalar(0, 0, 0), 7);
-        Imgproc.line(mRgba, new Point(frameCenter.x + SENSITIVITY, 0), new Point(frameCenter.x + SENSITIVITY, 720), new Scalar(0, 0, 0), 7);
-        return mRgba;
+        Log.wtf(TAG, "CameraView Stopped");
     }
 
     @Override
@@ -433,8 +333,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     // USB communication
 
-    private void disconnectUsb(){
-        if(isUsbPortConnected){
+    private void disconnectUsb() {
+        if (isUsbPortConnected) {
             usbSerialDevice.close();
             isUsbPortConnected = false;
         }
@@ -448,16 +348,70 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
     }
 
-    private class SendingThread implements Runnable{
+    private class SendingThread implements Runnable {
         byte[] msg = new byte[1];
 
         SendingThread(char cmd) {
             this.msg[0] = (byte) cmd;
         }
+
         @Override
         public void run() {
             usbSerialDevice.write(msg);
         }
     }
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DO NOT EDIT
 
+// MODIFY ACCORDING TO YOUR NEED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    private static final Scalar GREEN_LOWER = new Scalar(29, 86, 6);
+    private static final Scalar GREEN_UPPER = new Scalar(70, 255, 255);
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        mRgba = inputFrame.rgba();                                          // mRgba: camera captured frame in RGBA color space
+        Mat greenMask = null, hsvBlur = null;                               // declare a matrices to store greenMasked image and image which is in hsv color space as well as blurred.
+        if (isRoboOn) {
+            greenMask = new Mat(mRgba.size(), CvType.CV_8UC4);              // creates a matrix for green-masked image
+            hsvBlur = new Mat(mRgba.size(), CvType.CV_8UC4);
+            List<MatOfPoint> contours = new ArrayList<>();                  // stores the list of all the contours
+            Mat interHi = new Mat();                                        // another extra matrix for manipulation
+            float[] enclosingRadius = new float[1];                        // variable to store object's enclosing circle's radius
+            Point tempEncloseCenter = new Point();                           // variable to store object's enclosing circle's center
+
+            Imgproc.GaussianBlur(mRgba, hsvBlur, new Size(5, 5), 0);        // Blur the image. Vary the values of width,height to adjust blurring
+            Imgproc.cvtColor(hsvBlur, hsvBlur, Imgproc.COLOR_BGR2HSV);                           //  Convert the color space to HSV
+            Core.inRange(hsvBlur, GREEN_LOWER, GREEN_UPPER, greenMask);                          // Create green-masked image
+
+            // find green contours with radius really big
+            Imgproc.findContours(greenMask, contours, interHi, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            if (contours.size() > 0) {
+                double maxContourArea = 0;
+                int maxValIdx = 0;
+                // loop to find the contour with maximum area.
+                for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
+                    double contourArea = Imgproc.contourArea(contours.get(contourIdx));
+                    if (maxContourArea < contourArea) {
+                        maxContourArea = contourArea;
+                        maxValIdx = contourIdx;
+                    }
+                }
+                Imgproc.minEnclosingCircle(new MatOfPoint2f(contours.get(maxValIdx).toArray()), tempEncloseCenter, enclosingRadius);
+                if (enclosingRadius[0] > 100) Log("GREEN Card detected!");
+                else Log("Nothing detected.");
+            }
+            contours.clear();               // clear data from contour arrayList.
+
+            interHi.release();          // release data from intermediatary matrix.
+        }
+        return greenMask; // replace greenMask with mRgba to view the frame directly from camera.
+    }
 }
+/*
+Description of useful functions:
+    sendCommand(): sends a character to the usb device connected.
+    Log(): prints the string onto the text view of the app.
+What each button does:
+    'ImageProc Start'(/Stop): Starts or stops image processing
+    'USB Start'(/Stop): Start/Stops usb communication between smartphone and arduino
+    'Echo 'M'': sends the character 'M' to arduino.
+    'Back Camera'/Front Camera: Toggles between front and back camera. Default: back camera
+ */
